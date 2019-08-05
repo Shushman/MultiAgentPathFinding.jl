@@ -31,7 +31,7 @@ function main(infile::String, outfile::String)
 
     solver = CBSSolver{Grid2DState,Grid2DAction,Int64,Grid2DConflict,Grid2DConstraints,Grid2DEnvironment}(env=env)
 
-    @time solution = search(solver, initial_states)
+    @time solution = search!(solver, initial_states)
 
     if isempty(solution)
         println("Planning not successful!")

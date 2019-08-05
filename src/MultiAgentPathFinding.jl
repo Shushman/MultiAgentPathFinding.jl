@@ -42,21 +42,24 @@ export
     create_constraints_from_conflict,
     overlap_between_constraints,
     add_constraint,
-    low_level_search,
+    low_level_search!,
     CBSSolver,
-    search
+    search!
 
-
+# Grid 2D Types
 export
     Grid2DState,
     Grid2DAction,
     Grid2DConflict,
     Grid2DConstraints,
     Grid2DEnvironment,
-    Grid2DLocation
+    Grid2DLocation,
+    AStarGrid2DEnvironment
 
 include("utils.jl")
 include("cbs.jl")
-include("cbs_grid2d.jl")
+include("domains/grid2d/types.jl")
+include("domains/grid2d/cbs_grid2d.jl")
+include("domains/grid2d/a_star_epsilon_grid2d.jl")
 
 end # module

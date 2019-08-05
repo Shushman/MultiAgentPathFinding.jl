@@ -13,7 +13,7 @@ function get_first_conflict end
 function create_constraints_from_conflict end
 function overlap_between_constraints end
 function add_constraint! end
-function low_level_search end
+function low_level_search! end
 
 
 
@@ -24,7 +24,7 @@ function low_level_search end
 end
 
 
-function search(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) where {S <: MAPFState, A <: MAPFAction, C <: Number,
+function search!(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) where {S <: MAPFState, A <: MAPFAction, C <: Number,
                                                                                     F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
 
     num_agents = length(initial_states)
@@ -41,7 +41,7 @@ function search(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) whe
         set_low_level_context!(solver.env, idx, start.constraints[idx])
 
         # Calls get_plan_result_from_astar within
-        new_solution = low_level_search(solver.env, idx, initial_states[idx], start.constraints[idx])
+        new_solution = low_level_search!(solver.env, idx, initial_states[idx], start.constraints[idx])
         # @show idx
         # @show new_solution.states
 
@@ -94,7 +94,7 @@ function search(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) whe
             new_node.cost -= new_node.solution[i].cost
 
             set_low_level_context!(solver.env, i, new_node.constraints[i])
-            new_solution = low_level_search(solver.env, i, initial_states[i], new_node.constraints[i])
+            new_solution = low_level_search!(solver.env, i, initial_states[i], new_node.constraints[i])
             # @show i
             # @show new_solution.states
 
