@@ -7,10 +7,11 @@ using DataStructures
 
 # others
 using Parameters
+using Graphs
 
 # Imports
 import Base: isequal, isless, isempty
-using Graphs
+import DataStructures: compare
 
 
 
@@ -44,7 +45,9 @@ export
     add_constraint,
     low_level_search!,
     CBSSolver,
-    search!
+    search!,
+    focal_heuristic,
+    ECBSSolver
 
 # Grid 2D Types
 export
@@ -58,8 +61,10 @@ export
 
 include("utils.jl")
 include("cbs.jl")
+include("ecbs.jl")
 include("domains/grid2d/types.jl")
 include("domains/grid2d/cbs_grid2d.jl")
+include("domains/grid2d/ecbs_grid2d.jl")
 include("domains/grid2d/a_star_epsilon_grid2d.jl")
 
 end # module

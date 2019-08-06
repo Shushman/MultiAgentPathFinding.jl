@@ -1,11 +1,11 @@
-@with_kw mutable struct HighLevelNode{S <: MAPFState, A <: MAPFAction, C <: Number, CNR <: MAPFConstraints}
+@with_kw mutable struct CBSHighLevelNode{S <: MAPFState, A <: MAPFAction, C <: Number, CNR <: MAPFConstraints}
     solution::Vector{PlanResult{S,A,C}} = Vector{PlanResult{S,A,C}}(undef, 0)
     constraints::Vector{CNR}            = Vector{CNR}(undef,0)
     cost::C                             = zero(C)
     id::Int64                           = 0
 end
 
-Base.isless(hln1::HighLevelNode, hln2::HighLevelNode) = hln1.cost < hln2.cost
+Base.isless(hln1::CBSHighLevelNode, hln2::CBSHighLevelNode) = hln1.cost < hln2.cost
 
 # Functions required to be implemented by environment
 function set_low_level_context! end
@@ -20,7 +20,7 @@ function low_level_search! end
 @with_kw mutable struct CBSSolver{S <: MAPFState, A <: MAPFAction, C <: Number,
                                   F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
     env::E
-    heap::MutableBinaryMinHeap{HighLevelNode{S,A,C,CNR}}    = MutableBinaryMinHeap{HighLevelNode{S,A,C,CNR}}()
+    heap::MutableBinaryMinHeap{CBSHighLevelNode{S,A,C,CNR}}    = MutableBinaryMinHeap{CBSHighLevelNode{S,A,C,CNR}}()
 end
 
 
@@ -29,9 +29,8 @@ function search!(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) wh
 
     num_agents = length(initial_states)
 
-    start = HighLevelNode(solution = Vector{PlanResult{S,A,C}}(undef, num_agents),
-                          constraints = Vector{CNR}(undef, num_agents),
-                          cost = zero(C), id = 0)
+    start = CBSHighLevelNode{S,A,C,CNR}(solution = Vector{PlanResult{S,A,C}}(undef, num_agents),
+                             constraints = Vector{CNR}(undef, num_agents))
 
     for idx = 1:num_agents
 
@@ -41,7 +40,7 @@ function search!(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) wh
         set_low_level_context!(solver.env, idx, start.constraints[idx])
 
         # Calls get_plan_result_from_astar within
-        new_solution = low_level_search!(solver.env, idx, initial_states[idx], start.constraints[idx])
+        new_solution = low_level_search!(solver, idx, initial_states[idx], start.constraints[idx])
         # @show idx
         # @show new_solution.states
 
@@ -94,7 +93,7 @@ function search!(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) wh
             new_node.cost -= new_node.solution[i].cost
 
             set_low_level_context!(solver.env, i, new_node.constraints[i])
-            new_solution = low_level_search!(solver.env, i, initial_states[i], new_node.constraints[i])
+            new_solution = low_level_search!(solver, i, initial_states[i], new_node.constraints[i])
             # @show i
             # @show new_solution.states
 

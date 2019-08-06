@@ -67,7 +67,7 @@ function set_low_level_context!(env::Grid2DEnvironment, agent_idx::Int64, constr
     end
 end
 
-function admissible_heuristic(env::Grid2DEnvironment, s::Grid2DState)
+function admissible_heuristic_grid2d(env::Grid2DEnvironment, s::Grid2DState)
     return abs(s.x - env.goals[env.agent_idx].x) + abs(s.y - env.goals[env.agent_idx].y)
 end
 
@@ -198,7 +198,9 @@ end
 
 
 
-function low_level_search!(env::Grid2DEnvironment, agent_idx::Int64, s::Grid2DState, constraints::Grid2DConstraints)
+function low_level_search!(solver::CBSSolver, agent_idx::Int64, s::Grid2DState, constraints::Grid2DConstraints)
+
+    env = solver.env
 
     # Reset env index
     env.curr_goal_idx = 0
@@ -210,7 +212,7 @@ function low_level_search!(env::Grid2DEnvironment, agent_idx::Int64, s::Grid2DSt
     edge_wt_fn(u, v) = 1
 
     # Set the heuristic
-    heuristic(v) = admissible_heuristic(env, v)
+    heuristic(v) = admissible_heuristic_grid2d(env, v)
 
     # Run the search
     # @info "RUNNING SEARCH!"
