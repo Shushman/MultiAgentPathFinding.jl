@@ -17,14 +17,15 @@ function low_level_search! end
 
 
 
-@with_kw mutable struct CBSSolver{S <: MAPFState, A <: MAPFAction, C <: Number,
+@with_kw mutable struct CBSSolver{S <: MAPFState, A <: MAPFAction, C <: Number, HC <: HighLevelCost,
                                   F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
     env::E
+    hlcost::HC                                                 = HC()
     heap::MutableBinaryMinHeap{CBSHighLevelNode{S,A,C,CNR}}    = MutableBinaryMinHeap{CBSHighLevelNode{S,A,C,CNR}}()
 end
 
 
-function search!(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) where {S <: MAPFState, A <: MAPFAction, C <: Number,
+function search!(solver::CBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}) where {S <: MAPFState, A <: MAPFAction, C <: Number, HC <: HighLevelCost,
                                                                                     F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
 
     num_agents = length(initial_states)
@@ -50,11 +51,11 @@ function search!(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) wh
         end
 
         start.solution[idx] = new_solution
-        start.cost += start.solution[idx].cost
     end
 
     # readline()
     # Insert start to heap
+    start.cost = compute_cost(solver.hlcost, start.solution)
     push!(solver.heap, start)
 
     id = 1
@@ -90,7 +91,7 @@ function search!(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) wh
             # @debug new_node.constraints[i].vertex_constraints
 
             # Redo search with new constraint
-            new_node.cost -= new_node.solution[i].cost
+            new_node.cost = deaccumulate_cost(solver.hlcost, new_node.cost, new_node.solution[i].cost)
 
             set_low_level_context!(solver.env, i, new_node.constraints[i])
             new_solution = low_level_search!(solver, i, initial_states[i], new_node.constraints[i])
@@ -103,7 +104,7 @@ function search!(solver::CBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) wh
             if ~(isempty(new_solution))
 
                 new_node.solution[i] = new_solution
-                new_node.cost += new_solution.cost
+                new_node.cost = accumulate_cost(solver.hlcost, new_node.cost, new_solution.cost)
                 push!(solver.heap, new_node)
                 # @show new_node
             end

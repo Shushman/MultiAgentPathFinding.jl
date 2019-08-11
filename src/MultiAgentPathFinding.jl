@@ -22,6 +22,7 @@ abstract type MAPFConflict end
 abstract type MAPFConstraints end
 abstract type MAPFEnvironment end
 
+# Types
 export
     MAPFState,
     MAPFAction,
@@ -29,12 +30,21 @@ export
     MAPFConstraints,
     MAPFEnvironment
 
-
+# Utils
 export
     PlanResult,
     get_mapf_state_from_idx,
     get_mapf_action,
     get_plan_result_from_astar
+
+# High Level Cost elements
+export
+    HighLevelCost,
+    compute_cost,
+    accumulate_cost,
+    deaccumulate_cost,
+    SumOfCosts,
+    Makespan
 
 export
     get_empty_constraint,
@@ -60,6 +70,7 @@ export
     AStarGrid2DEnvironment
 
 include("utils.jl")
+include("high_level_cost.jl")
 include("cbs.jl")
 include("ecbs.jl")
 include("domains/grid2d/types.jl")

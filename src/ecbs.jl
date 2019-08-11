@@ -56,9 +56,9 @@ function search!(solver::ECBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) w
         end
 
         start.solution[idx] = new_solution
-        start.cost += start.solution[idx].cost
         start.lb += start.solution[idx].fmin
     end
+    start.cost = compute_cost(solver.hlcost, start.solution)
     start.focal_heuristic_value = focal_heuristic(solver.env, start.solution)
 
     # Push on to heaps
@@ -120,7 +120,7 @@ function search!(solver::ECBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) w
 
             add_constraint!(new_node.constraints[i], c)
 
-            new_node.cost -= new_node.solution[i].cost
+            new_node.cost = deaccumulate_cost(solver.hlcost, new_node.cost, new_node.solution[i].cost)
             new_node.lb -= new_node.solution[i].fmin
 
             set_low_level_context!(solver.env, i, new_node.constraints[i])
@@ -129,7 +129,7 @@ function search!(solver::ECBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) w
             if ~(isempty(new_solution))
 
                 new_node.solution[i] = new_solution
-                new_node.cost += new_solution.cost
+                new_node.cost = accumulate_cost(solver.hlcost, new_node.cost, new_solution.cost)
                 new_node.lb += new_solution.fmin
                 new_node.focal_heuristic_value = focal_heuristic(solver.env, new_node.solution)
 

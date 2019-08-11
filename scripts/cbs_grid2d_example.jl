@@ -1,7 +1,7 @@
 import JSON
 using MultiAgentPathFinding
 
-function main(infile::String, outfile::String)
+function main(infile::String, outfile::String, hlcost::String)
 
     # Main code block
     config = JSON.parsefile(infile)
@@ -29,7 +29,13 @@ function main(infile::String, outfile::String)
 
     env = Grid2DEnvironment(dimx=dim[1], dimy=dim[2], goals=goals, obstacles=obstacles)
 
-    solver = CBSSolver{Grid2DState,Grid2DAction,Int64,Grid2DConflict,Grid2DConstraints,Grid2DEnvironment}(env=env)
+    if hlcost == "SOC"
+        solver = CBSSolver{Grid2DState,Grid2DAction,Int64,SumOfCosts,Grid2DConflict,Grid2DConstraints,Grid2DEnvironment}(env=env)
+    elseif hlcost == "MS"
+        solver = CBSSolver{Grid2DState,Grid2DAction,Int64,Makespan,Grid2DConflict,Grid2DConstraints,Grid2DEnvironment}(env=env)
+    else
+        println("Please enter either SOC or MS for high level cost")
+    end
 
     @time solution = search!(solver, initial_states)
 
