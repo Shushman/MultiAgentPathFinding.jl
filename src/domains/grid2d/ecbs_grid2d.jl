@@ -1,6 +1,6 @@
 # Only need to define heuristic stuff
 function focal_state_heuristic_grid2d(env::Grid2DEnvironment, solution::Vector{PlanResult{Grid2DState,Grid2DAction,Int64}},
-                                      s::Grid2DState, gs::Int64)
+                                      s::Grid2DState)
 
     num_conflicts = 0
 
@@ -18,7 +18,7 @@ end
 
 
 function focal_transition_heuristic_grid2d(env::Grid2DEnvironment,  solution::Vector{PlanResult{Grid2DState,Grid2DAction,Int64}},
-                                           s1a::Grid2DState, s1b::Grid2DState, gs1a::Int64, gs1b::Int64,)
+                                           s1a::Grid2DState, s1b::Grid2DState)
 
     num_conflicts = 0
 
@@ -93,8 +93,8 @@ function low_level_search!(solver::ECBSSolver, agent_idx::Int64, s::Grid2DState,
 
     # Set the heuristics
     admissible_heuristic(s) = admissible_heuristic_grid2d(solver.env, s)
-    focal_state_heuristic(s, gs) = focal_state_heuristic_grid2d(solver.env, solution, s, gs)
-    focal_transition_heuristic(s1a, s1b, gs1a, gs1b) = focal_transition_heuristic_grid2d(solver.env, solution, s1a, s1b, gs1a, gs1b)
+    focal_state_heuristic(s) = focal_state_heuristic_grid2d(solver.env, solution, s)
+    focal_transition_heuristic(s1a, s1b) = focal_transition_heuristic_grid2d(solver.env, solution, s1a, s1b)
 
     # Run the search
     vis = CBSGoalVisitorImplicit(env, constraints)

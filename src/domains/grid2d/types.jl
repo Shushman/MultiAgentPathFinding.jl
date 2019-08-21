@@ -54,7 +54,7 @@ Base.isequal(ec1::EdgeConstraint, ec2::EdgeConstraint) = (ec1.time, ec1.x1, ec1.
     edge_constraints::Set{EdgeConstraint}       = Set{EdgeConstraint}()
 end
 
-get_empty_constraint(Grid2DConstraints) = Grid2DConstraints()
+get_empty_constraint(::Type{Grid2DConstraints}) = Grid2DConstraints()
 
 Base.isempty(constraints::Grid2DConstraints) = (isempty(constraints.vertex_constraints) && isempty(constraints.edge_constraints))
 

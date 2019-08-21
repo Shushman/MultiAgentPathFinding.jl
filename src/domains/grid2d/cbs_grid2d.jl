@@ -193,7 +193,7 @@ function create_constraints_from_conflict(env::Grid2DEnvironment, conflict::Grid
         res_constraints[conflict.agent_2] = c2
     end
 
-    return res_constraints
+    return [res_constraints]
 end
 
 
