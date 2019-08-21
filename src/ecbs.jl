@@ -111,36 +111,39 @@ function search!(solver::ECBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) w
             return focal_entry.solution
         end
 
+        # VECTOR OF CONSTRAINTS
         constraints = create_constraints_from_conflict(solver.env, conflict)
 
-        for (i, c) in constraints
+        for constraint in constraints
+            for (i, c) in constraints
 
-            new_node = deepcopy(focal_entry)
-            new_node.id = id
+                new_node = deepcopy(focal_entry)
+                new_node.id = id
 
-            add_constraint!(new_node.constraints[i], c)
+                add_constraint!(new_node.constraints[i], c)
 
-            new_node.cost = deaccumulate_cost(solver.hlcost, new_node.cost, new_node.solution[i].cost)
-            new_node.lb -= new_node.solution[i].fmin
+                new_node.cost = deaccumulate_cost(solver.hlcost, new_node.cost, new_node.solution[i].cost)
+                new_node.lb -= new_node.solution[i].fmin
 
-            set_low_level_context!(solver.env, i, new_node.constraints[i])
-            new_solution = low_level_search!(solver, i, initial_states[i], new_node.constraints[i], new_node.solution)
+                set_low_level_context!(solver.env, i, new_node.constraints[i])
+                new_solution = low_level_search!(solver, i, initial_states[i], new_node.constraints[i], new_node.solution)
 
-            if ~(isempty(new_solution))
+                if ~(isempty(new_solution))
 
-                new_node.solution[i] = new_solution
-                new_node.cost = accumulate_cost(solver.hlcost, new_node.cost, new_solution.cost)
-                new_node.lb += new_solution.fmin
-                new_node.focal_heuristic_value = focal_heuristic(solver.env, new_node.solution)
+                    new_node.solution[i] = new_solution
+                    new_node.cost = accumulate_cost(solver.hlcost, new_node.cost, new_solution.cost)
+                    new_node.lb += new_solution.fmin
+                    new_node.focal_heuristic_value = focal_heuristic(solver.env, new_node.solution)
 
-                solver.hmap[id] = push!(solver.heap, new_node)
+                    solver.hmap[id] = push!(solver.heap, new_node)
 
-                if new_node.cost <= solver.weight * best_cost
-                    solver.focal_hmap[id] = push!(solver.focal_heap, new_node)
+                    if new_node.cost <= solver.weight * best_cost
+                        solver.focal_hmap[id] = push!(solver.focal_heap, new_node)
+                    end
                 end
-            end
 
-            id += 1
+                id += 1
+            end
         end
     end
 

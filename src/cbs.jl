@@ -10,6 +10,7 @@ Base.isless(hln1::CBSHighLevelNode, hln2::CBSHighLevelNode) = hln1.cost < hln2.c
 # Functions required to be implemented by environment
 function set_low_level_context! end
 function get_first_conflict end
+""" Return vector of constraints"""
 function create_constraints_from_conflict end
 function overlap_between_constraints end
 function add_constraint! end
@@ -77,39 +78,43 @@ function search!(solver::CBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S})
         end
 
         # Create additional nodes to resolve conflict (which is not nothing)
+        # IMP _ VECTOR OF CONSTRAINTS
         constraints = create_constraints_from_conflict(solver.env, conflict)
         # @show constraints
 
-        for (i, c) in constraints
+        # TODO : Handle constraint sets!!
+        for constraint in constraints
+            for (i, c) in constraint
 
-            new_node = deepcopy(P)
-            new_node.id = id
+                new_node = deepcopy(P)
+                new_node.id = id
 
-            # TODO: Check overlap??
+                # TODO: Check overlap??
 
-            add_constraint!(new_node.constraints[i], c)
-            # @debug new_node.constraints[i].vertex_constraints
+                add_constraint!(new_node.constraints[i], c)
+                # @debug new_node.constraints[i].vertex_constraints
 
-            # Redo search with new constraint
-            new_node.cost = deaccumulate_cost(solver.hlcost, new_node.cost, new_node.solution[i].cost)
+                # Redo search with new constraint
+                new_node.cost = deaccumulate_cost(solver.hlcost, new_node.cost, new_node.solution[i].cost)
 
-            set_low_level_context!(solver.env, i, new_node.constraints[i])
-            new_solution = low_level_search!(solver, i, initial_states[i], new_node.constraints[i])
-            # @show i
-            # @show new_solution.states
+                set_low_level_context!(solver.env, i, new_node.constraints[i])
+                new_solution = low_level_search!(solver, i, initial_states[i], new_node.constraints[i])
+                # @show i
+                # @show new_solution.states
 
-            # readline()
+                # readline()
 
-            # Only create new node if we found a solution
-            if ~(isempty(new_solution))
+                # Only create new node if we found a solution
+                if ~(isempty(new_solution))
 
-                new_node.solution[i] = new_solution
-                new_node.cost = accumulate_cost(solver.hlcost, new_node.cost, new_solution.cost)
-                push!(solver.heap, new_node)
-                # @show new_node
+                    new_node.solution[i] = new_solution
+                    new_node.cost = accumulate_cost(solver.hlcost, new_node.cost, new_solution.cost)
+                    push!(solver.heap, new_node)
+                    # @show new_node
+                end
+
+                id += 1
             end
-
-            id += 1
         end
     end
 
