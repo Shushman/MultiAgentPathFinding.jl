@@ -29,7 +29,7 @@ function main(infile::String, weight::Float64, outfile::String)
 
     env = Grid2DEnvironment(dimx=dim[1], dimy=dim[2], goals=goals, obstacles=obstacles)
 
-    solver = ECBSSolver{Grid2DState,Grid2DAction,Int64,Grid2DConflict,Grid2DConstraints,Grid2DEnvironment}(env=env, weight=weight)
+    solver = ECBSSolver{Grid2DState,Grid2DAction,Int64,SumOfCosts,Grid2DConflict,Grid2DConstraints,Grid2DEnvironment}(env=env, weight=weight)
 
     @time solution = search!(solver, initial_states)
 

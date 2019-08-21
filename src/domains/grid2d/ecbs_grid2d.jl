@@ -108,7 +108,8 @@ function low_level_search!(solver::ECBSSolver, agent_idx::Int64, s::Grid2DState,
                                                                         Int64)
 
     plan_result = get_plan_result_from_astar(env, a_star_epsilon_states.dists,
-                                            a_star_epsilon_states.parent_indices, idx, env.curr_goal_idx)
+                                            a_star_epsilon_states.parent_indices, idx,
+                                            env.curr_goal_idx, a_star_epsilon_states.best_fvalue)
 
     if plan_result == nothing
         return PlanResult{Grid2DState,Grid2DAction,Int64}()

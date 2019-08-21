@@ -16,7 +16,7 @@ function get_mapf_action end
 # generate the PlanResult
 function get_plan_result_from_astar(env::E, a_star_dists::Dict, a_star_parent_indices::Dict,
                                     start_idx::Int64, goal_idx::Int64,
-                                    best_fvalue::D = zero(D)) where {E <: MAPFEnvironment, D <: Number}
+                                    best_fvalue::D) where {E <: MAPFEnvironment, D <: Number}
 
     # First ensure the goal is reachable
     if ~(haskey(a_star_dists, goal_idx))

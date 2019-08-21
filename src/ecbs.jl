@@ -18,9 +18,10 @@ end
 
 compare(comp::CompareFocalHeuristic, n1::ECBSHighLevelNode, n2::ECBSHighLevelNode) = (n1.focal_heuristic_value, n1.cost) < (n2.focal_heuristic_value, n2.cost)
 
-@with_kw mutable struct ECBSSolver{S <: MAPFState, A <: MAPFAction, C <: Number,
+@with_kw mutable struct ECBSSolver{S <: MAPFState, A <: MAPFAction, C <: Number, HC <: HighLevelCost,
                                   F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
     env::E
+    hlcost::HC                                                                      = HC()
     weight::Float64                                                                 = 1.0
     heap::MutableBinaryMinHeap{ECBSHighLevelNode{S,A,C,CNR}}                            = MutableBinaryMinHeap{ECBSHighLevelNode{S,A,C,CNR}}()
     hmap::Dict{Int,Int}                                                             = Dict{Int,Int}()
@@ -29,7 +30,7 @@ compare(comp::CompareFocalHeuristic, n1::ECBSHighLevelNode, n2::ECBSHighLevelNod
 end
 
 
-function search!(solver::ECBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) where {S <: MAPFState, A <: MAPFAction, C <: Number,
+function search!(solver::ECBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}) where {S <: MAPFState, A <: MAPFAction, C <: Number,  HC <: HighLevelCost,
                                                                                     F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
 
     num_agents = length(initial_states)
@@ -115,7 +116,7 @@ function search!(solver::ECBSSolver{S,A,C,F,CNR,E}, initial_states::Vector{S}) w
         constraints = create_constraints_from_conflict(solver.env, conflict)
 
         for constraint in constraints
-            for (i, c) in constraints
+            for (i, c) in constraint
 
                 new_node = deepcopy(focal_entry)
                 new_node.id = id
