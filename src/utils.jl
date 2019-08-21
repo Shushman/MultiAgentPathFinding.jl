@@ -15,7 +15,8 @@ function get_mapf_action end
 # Given a MAPF Environment, state-action types and A-star parent index
 # generate the PlanResult
 function get_plan_result_from_astar(env::E, a_star_dists::Dict, a_star_parent_indices::Dict,
-                                    start_idx::Int64, goal_idx::Int64) where {E <: MAPFEnvironment}
+                                    start_idx::Int64, goal_idx::Int64,
+                                    best_fvalue::D = zero(D)) where {E <: MAPFEnvironment, D <: Number}
 
     # First ensure the goal is reachable
     if ~(haskey(a_star_dists, goal_idx))
@@ -24,7 +25,11 @@ function get_plan_result_from_astar(env::E, a_star_dists::Dict, a_star_parent_in
 
     # Set both cost and fmin
     cost = a_star_dists[goal_idx]
-    fmin = a_star_dists[goal_idx]
+    if best_fvalue == zero(D)
+        fmin = a_star_dists[goal_idx]
+    else
+        fmin = best_fvalue
+    end
 
     # Insert last elements to states and actions arrays
     goal_state = get_mapf_state_from_idx(env, goal_idx)
