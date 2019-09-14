@@ -18,8 +18,7 @@ end
 
 compare(comp::CompareFocalHeuristic, n1::ECBSHighLevelNode, n2::ECBSHighLevelNode) = (n1.focal_heuristic_value, n1.cost) < (n2.focal_heuristic_value, n2.cost)
 
-@with_kw mutable struct ECBSSolver{S <: MAPFState, A <: MAPFAction, C <: Number, HC <: HighLevelCost,
-                                  F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
+@with_kw mutable struct ECBSSolver{S <: MAPFState, A <: MAPFAction, C <: Number, HC <: HighLevelCost, F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
     env::E
     hlcost::HC                                                                      = HC()
     weight::Float64                                                                 = 1.0
@@ -27,6 +26,7 @@ compare(comp::CompareFocalHeuristic, n1::ECBSHighLevelNode, n2::ECBSHighLevelNod
     hmap::Dict{Int,Int}                                                             = Dict{Int,Int}()
     focal_heap::MutableBinaryHeap{ECBSHighLevelNode{S,A,C,CNR},CompareFocalHeuristic}   = MutableBinaryHeap{ECBSHighLevelNode{S,A,C,CNR},CompareFocalHeuristic}()
     focal_hmap::Dict{Int,Int}                                                       = Dict{Int,Int}()
+    num_global_conflicts::Int64                                                     = 0
 end
 
 
@@ -48,8 +48,6 @@ function search!(solver::ECBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}
         # Calls get_plan_result_from_astar within
         new_solution = low_level_search!(solver, idx, initial_states[idx], start.constraints[idx],
                                          Vector{PlanResult{S,A,C}}(undef, 0))
-        # @show idx
-        # @show new_solution.states
 
         # Return empty solution if cannot find
         if isempty(new_solution)
@@ -80,7 +78,8 @@ function search!(solver::ECBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}
             for node in sort(solver.heap.nodes, by = x->x.value.cost)
                 val = node.value.cost
 
-                if val > solver.weight * old_best_cost && val <= solver.weight * best_cost
+                if val > solver.weight * old_best_cost && val <= solver.weight * best_cost &&
+                    ~(haskey(solver.focal_hmap, node.value.id))
                     solver.focal_hmap[node.value.id] = push!(solver.focal_heap, node.value)
                 end
 
@@ -97,6 +96,8 @@ function search!(solver::ECBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}
         focal_entry, focal_handle = top_with_handle(solver.focal_heap)
         heap_handle = solver.hmap[focal_entry.id]
 
+        # @show focal_entry.id
+
         pop!(solver.focal_heap)
         delete!(solver.focal_hmap, focal_entry.id)
         delete!(solver.heap, heap_handle)
@@ -112,14 +113,18 @@ function search!(solver::ECBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}
             return focal_entry.solution
         end
 
+        solver.num_global_conflicts += 1
+
         # VECTOR OF CONSTRAINTS
         constraints = create_constraints_from_conflict(solver.env, conflict)
 
         for constraint in constraints
             for (i, c) in constraint
 
+                # @show (i, c)
+
                 new_node = deepcopy(focal_entry)
-                new_node.id = id
+
 
                 add_constraint!(new_node.constraints[i], c)
 
@@ -131,6 +136,8 @@ function search!(solver::ECBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}
 
                 if ~(isempty(new_solution))
 
+                    # Can enter a new node
+                    new_node.id = id
                     new_node.solution[i] = new_solution
                     new_node.cost = accumulate_cost(solver.hlcost, new_node.cost, new_solution.cost)
                     new_node.lb += new_solution.fmin
@@ -141,9 +148,8 @@ function search!(solver::ECBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}
                     if new_node.cost <= solver.weight * best_cost
                         solver.focal_hmap[id] = push!(solver.focal_heap, new_node)
                     end
+                    id += 1
                 end
-
-                id += 1
             end
         end
     end
