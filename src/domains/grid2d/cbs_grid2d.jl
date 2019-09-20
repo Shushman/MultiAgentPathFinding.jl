@@ -217,9 +217,9 @@ function low_level_search!(solver::CBSSolver, agent_idx::Int64, s::Grid2DState, 
     # Run the search
     # @info "RUNNING SEARCH!"
     vis = CBSGoalVisitorImplicit(env, constraints)
-    a_star_states = a_star_light_shortest_path_implicit!(env.state_graph, edge_wt_fn,
-                                                        idx, vis,
-                                                        heuristic, Int64)
+    a_star_states =  a_star_implicit_shortest_path!(env.state_graph, edge_wt_fn,
+                                                    idx, vis,
+                                                    heuristic, Int64)
 
     plan_result = get_plan_result_from_astar(env, a_star_states.dists, a_star_states.parent_indices, idx, env.curr_goal_idx)
 

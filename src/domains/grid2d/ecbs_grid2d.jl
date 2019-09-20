@@ -98,18 +98,18 @@ function low_level_search!(solver::ECBSSolver, agent_idx::Int64, s::Grid2DState,
 
     # Run the search
     vis = CBSGoalVisitorImplicit(env, constraints)
-    a_star_epsilon_states = a_star_light_epsilon_shortest_path_implicit!(env.state_graph,
-                                                                        edge_wt_fn, idx,
-                                                                        vis,
-                                                                        solver.weight,
-                                                                        admissible_heuristic,
-                                                                        focal_state_heuristic,
-                                                                        focal_transition_heuristic,
-                                                                        Int64)
+    a_star_eps_states = a_star_implicit_epsilon_path!(env.state_graph,
+                                                          edge_wt_fn, idx,
+                                                          vis,
+                                                          solver.weight,
+                                                          admissible_heuristic,
+                                                          focal_state_heuristic,
+                                                          focal_transition_heuristic,
+                                                          Int64)
 
-    plan_result = get_plan_result_from_astar(env, a_star_epsilon_states.dists,
-                                            a_star_epsilon_states.parent_indices, idx,
-                                            env.curr_goal_idx, a_star_epsilon_states.best_fvalue)
+    plan_result = get_plan_result_from_astar(env, a_star_eps_states.a_star_states.dists,
+                                            a_star_eps_states.a_star_states.parent_indices, idx,
+                                            env.curr_goal_idx, a_star_eps_states.best_fvalue)
 
     if plan_result == nothing
         return PlanResult{Grid2DState,Grid2DAction,Int64}()
