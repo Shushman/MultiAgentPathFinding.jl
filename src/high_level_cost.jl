@@ -1,8 +1,31 @@
+""" HighLevelCost
+
+Abstract base type for the two kinds of high-level MAPF costs - Makespan and Sum-of-Costs
+"""
 abstract type HighLevelCost end
 
+"""
+    compute_cost(::HighLevelCost, solution::Vector{PR}) where {PR <: PlanResult}
+
+Compute the cost for the MAPF solution.
+"""
 function compute_cost end
-function accumulate_cost! end
-function deaccumulate_cost! end
+
+"""
+    accumulate_cost(::HighLevelCost, old_cost::C, new_entry_cost::C) where {C <: Number}
+
+Given a new entry, update the high-level cost according to the metric (addition for sum-of-costs,
+maximum for makespan)
+"""
+function accumulate_cost end
+
+"""
+    deaccumulate_cost(::HighLevelCost, old_cost::C, new_entry_cost::C) where {C <: Number}
+
+Given an entry to be removed, update the high-level cost according to the metric (subtraction for sum-of-costs,
+minimum for makespan)
+"""
+function deaccumulate_cost end
 
 
 struct SumOfCosts <: HighLevelCost

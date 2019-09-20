@@ -1,3 +1,5 @@
+# Directly copied from the reference CPP repository, for visualizing my solutions in the same way
+
 #!/usr/bin/env python3
 import json
 import yaml

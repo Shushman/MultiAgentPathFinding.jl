@@ -29,6 +29,7 @@ function main(infile::String, outfile::String, hlcost::String)
 
     env = Grid2DEnvironment(dimx=dim[1], dimy=dim[2], goals=goals, obstacles=obstacles)
 
+    ## TODO: Definitely a better way to do this....
     if hlcost == "SOC"
         solver = CBSSolver{Grid2DState,Grid2DAction,Int64,SumOfCosts,Grid2DConflict,Grid2DConstraints,Grid2DEnvironment}(env=env)
     elseif hlcost == "MS"

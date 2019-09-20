@@ -1,4 +1,3 @@
-# Strongly influenced by
 module MultiAgentPathFinding
 
 # stdlib
@@ -16,10 +15,34 @@ import DataStructures: compare
 
 
 # Abstract types
+""" MAPFState
+
+Abstract base type for tracking the state of an agent in a MAPF problem
+"""
 abstract type MAPFState end
+
+""" MAPFAction
+
+Abstract base type for the action that an agent can take in a MAPF problem.
+"""
 abstract type MAPFAction end
+
+""" MAPFConflict
+
+Abstract base type for a path-path conflict in a MAPF problem.
+"""
 abstract type MAPFConflict end
+
+""" MAPFConstraints
+
+Abstract base type for the constraints on the low-level path search induced by a conflict in a MAPF problem.
+"""
 abstract type MAPFConstraints end
+
+""" MAPFEnvironment
+
+Abstract base type for the environment in a MAPF problem.
+"""
 abstract type MAPFEnvironment end
 
 # Types
@@ -46,6 +69,7 @@ export
     SumOfCosts,
     Makespan
 
+# CBS elements
 export
     get_empty_constraint,
     set_low_level_context!,

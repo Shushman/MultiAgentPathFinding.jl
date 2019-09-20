@@ -1,4 +1,9 @@
-""" focal_heuristic(::Env, ::Solution)"""
+"""
+    focal_heuristic(env::MAPFEnvironment, solution::Vector{PlanResult})
+
+Computes the (potentially inadmissible) focal heuristic value for the high-level node
+in ECBS; see the original ECBS paper for details - https://www.aaai.org/ocs/index.php/SOCS/SOCS14/paper/view/8911
+"""
 function focal_heuristic end
 
 # TODO: focal heuristics called on current solution?
@@ -29,7 +34,12 @@ compare(comp::CompareFocalHeuristic, n1::ECBSHighLevelNode, n2::ECBSHighLevelNod
     num_global_conflicts::Int64                                                     = 0
 end
 
+"""
+    search!(solver::ECBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}) where {S <: MAPFState, A <: MAPFAction, C <: Number, HC <: HighLevelCost,
+                                                                               F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
 
+Calls the ECBS Solver on the given problem.
+"""
 function search!(solver::ECBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S}) where {S <: MAPFState, A <: MAPFAction, C <: Number,  HC <: HighLevelCost,
                                                                                     F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
 

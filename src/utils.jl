@@ -1,4 +1,14 @@
-# Store the result of a single agent plan
+"""
+    PlanResult{S <: MAPFState, A <: MAPFAction, C <: Number}
+
+Stores the result of an individual agent's search.
+
+Attributes:
+    - `states::Vector{Tuple{S,C}}` The list of (state, cost-to-go) on the path
+    - `actions::Vector{Tuple{A,C}}` The list of (actions, cost) on the path.
+    - `cost::C` The cumulative cost of the path
+    - `fmin::C` The minimum f-value expanded during search
+"""
 @with_kw struct PlanResult{S <: MAPFState, A <: MAPFAction, C <: Number}
     states::Vector{Tuple{S,C}}  = Vector{Tuple{S,C}}(undef, 0)
     actions::Vector{Tuple{A,C}} = Vector{Tuple{A,C}}(undef, 0)
@@ -8,12 +18,28 @@ end
 
 Base.isempty(pln::PlanResult) = isempty(pln.states)
 
+"""
+    get_mapf_state_from_idx(env::E, idx::Int64) where {E <: MAPFEnvironment}
 
+My A* search implementation returns a list of graph indices; this function maps an index
+to the corresponding state for that environment.
+"""
 function get_mapf_state_from_idx end
+
+"""
+    get_mapf_action(env::E, source::Int64, target::Int64) where {E <: MAPFEnvironment}
+
+Returns the MAPFAction while going from source index to target index.
+"""
 function get_mapf_action end
 
-# Given a MAPF Environment, state-action types and A-star parent index
-# generate the PlanResult
+"""
+    get_plan_result_from_astar(env::E, a_star_dists::Dict, a_star_parent_indices::Dict,
+                               start_idx::Int64, goal_idx::Int64,
+                               best_fvalue::D) where {E <: MAPFEnvironment, D <: Number}
+
+Converts the result of an A*-search (from my Graphs.jl implementation) to a corresponding PlanResult instance.
+"""
 function get_plan_result_from_astar(env::E, a_star_dists::Dict, a_star_parent_indices::Dict,
                                     start_idx::Int64, goal_idx::Int64,
                                     best_fvalue::D) where {E <: MAPFEnvironment, D <: Number}

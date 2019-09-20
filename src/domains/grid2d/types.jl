@@ -1,3 +1,5 @@
+## The grid2d domain implements the environment used for testing in our reference
+## CPP repository; see the examples in https://github.com/whoenig/libMultiRobotPlanning/tree/master/example
 @with_kw struct Grid2DState <: MAPFState
     time::Int64
     x::Int64
