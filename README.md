@@ -50,6 +50,6 @@ You can visualize the output solution file by using `scripts/visualize.py` (whic
 
 
 ### A quick note on performance
-Take this with a grain of salt as I have not tried to optimize my implementation completely (nor, certainly, have the C++ repository authors). However, the Julia implementation appears to have comparable computation time as compared to the C++ one
+Take this with a grain of salt as I have not tried to optimize my implementation completely (nor,I imagine, have the C++ repository authors). However, the Julia implementation appears to have comparable computation time as compared to the C++ one
 (the RAM usage is higher for the Grid 2D example, though I did not really try to streamline the domain implementation).
 For what it's worth, here are the numbers for both implementations on my machine, for the exact same problem and algorithm (and the exact same result), with one example each of CBS and ECBS:
