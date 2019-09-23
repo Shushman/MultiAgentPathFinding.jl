@@ -15,7 +15,7 @@ folder that I have provided depend on my fork of the (archived)
 [Graphs.jl](https://github.com/Shushman/Graphs.jl) package. My fork has implementations
 for A* and Focal Search and weight-constrained versions of both with an _implicit
 graph structure_ where edges are not explicitly enumerated and out-neighbors
-are computed just-in-time using a visitor function (which [LightGraphs.jl(https://github.com/JuliaGraphs/LightGraphs.jl) does
+are computed just-in-time using a visitor function (which [LightGraphs.jl](https://github.com/JuliaGraphs/LightGraphs.jl) does
 not support, at least when I [last checked](https://github.com/JuliaGraphs/LightGraphs.jl/issues/1108)). </br>
 That said, the templated code for the abstract types and (E)CBS are very light on dependencies and easy-to-extend to other MAPF algorithms; feel free to fork and extend, and I'm happy to help to some extent if I can.
 
