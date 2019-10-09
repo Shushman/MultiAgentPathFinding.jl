@@ -8,7 +8,7 @@ This repository is heavily based on a [C++ library](https://github.com/whoenig/l
 
 ## Note for potential users
 The primary purpose of this repository is as an efficient implementation of Enhanced CBS
-for my paper _Enhanced Multi-Drone Delivery Using Transit Networks_ ([ArXiv](), [Code](https://github.com/sisl/MultiAgentAllocationTransit.jl/tree/master/src)).
+for my paper _Enhanced Multi-Drone Delivery Using Transit Networks_ ([ArXiv](https://arxiv.org/abs/1909.11840), [Code](https://github.com/sisl/MultiAgentAllocationTransit.jl)).
 **I have no immediate plans to implement other MAPF algorithms here.**
 Additionally, the low-level search implementation in the `domains/`
 folder that I have provided depend on my fork of the (archived)
