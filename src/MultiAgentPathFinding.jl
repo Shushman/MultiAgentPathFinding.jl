@@ -7,6 +7,7 @@ using DataStructures
 # others
 using Parameters
 using Graphs
+using LightGraphs
 
 # Imports
 import Base: isequal, isless, isempty

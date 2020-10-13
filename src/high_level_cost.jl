@@ -60,3 +60,73 @@ end
 function deaccumulate_cost(::Makespan, old_cost::C, new_entry_cost::C) where {C <: Number}
     return min(old_cost, new_entry_cost)
 end
+
+
+
+## New cost type for CBS-CG
+## Compute sum of individual paths but if two states have an edge 
+## then compute the pairwise costs of their next actions
+struct SumOfCoordinatedCosts <: HighLevelCost
+    get_coord_graph_from_state::Function   # Maps set of states to CG over agents
+    get_coord_utility::Function             # Maps pair of states and actions to utility
+end
+
+# Non-trivial: iterate through time-steps of the solution
+# Compute the coordination graph for all agents (use the final state of finished agent)
+# Add up action costs and if CG edge then add utility cost
+function compute_cost(socc::SumOfCoordinatedCosts, solution::Vector{PR},
+                      start_time::Int64=1) where {PR <: PlanResult}
+
+    # TODO : Verify this sort is okay
+    finish_times = sort((length(pr), i) for (i, pr) in enumerate(solution))
+    second_last_finish = finish_times[end-1][1]
+    state_type = typeof(solution[1].states[1][1])   # A bit hacky
+    nagents = length(solution)
+
+    total_cost = zero(typeof(solution[1].states[1][2]))
+
+    # Continue up to the last action of the second last agent 
+    for t = start_time:second_last_finish-1
+        curr_state = Vector{state_type}(undef, nagents)
+        for i = 1:nagents
+            curr_state[i] = solution[i].states[min(t, end)][1]  # Get the current or final state of agent i
+        end
+    
+        # Get the current CG
+        current_cg = socc.get_coord_graph_from_state(curr_state)
+
+        action_counted_agents = Set{Int64}()
+        for edge in edges(current_cg)
+
+            # Only consider edges between agents in play
+            # which still have actions to do at time t
+            if t <= min(length(solution[edge.src].actions), length(solution[edge.dst].actions))
+
+                push!(action_counted_agents, edge.src)
+                push!(action_counted_agents, edge.dst)
+
+                # Add up utility cost as a function of pair of states and actions
+                total_cost += socc.get_coord_utility(curr_state[edge.src], curr_state[edge.dst],
+                                                     solution[edge.src].actions[t], solution[edge.dst].actions[t])
+            end # t < min(vertex action sets)
+        end # edge in edges(curr_cg)
+
+        # For all agents that have not been counted that have actions remaining
+        # Count the cost of their actions
+        for i = 1:nagents
+            if ~(i in action_counted_agents) && t <= length(solution[i].actions)
+                total_cost += solution[i].actions[t]
+            end
+        end
+    end
+
+    # Now just count the actions of the last unfinished agent
+    (last_finish, last_agent) = finish_times[end]
+    for t = second_last_finish:last_finish-1
+        total_cost += solution[last_agent].actions[t]
+    end
+    
+    return total_cost
+end
+
+# NOTE: No accumulation/deaccumulation for SOCC (only a function of full solution). But that's okay
