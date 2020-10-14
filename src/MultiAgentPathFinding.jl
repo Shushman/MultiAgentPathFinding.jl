@@ -68,7 +68,8 @@ export
     accumulate_cost,
     deaccumulate_cost,
     SumOfCosts,
-    Makespan
+    Makespan,
+    SumOfCoordinatedCosts
 
 # CBS elements
 export
@@ -84,6 +85,12 @@ export
     focal_heuristic,
     ECBSSolver
 
+
+# CBS-CG elements
+export
+    get_coord_graph_from_state,
+    get_coord_utility
+
 # Grid 2D Types
 export
     Grid2DState,
@@ -98,6 +105,7 @@ include("utils.jl")
 include("high_level_cost.jl")
 include("cbs.jl")
 include("ecbs.jl")
+include("cbs_coord_graphs.jl")
 include("domains/grid2d/types.jl")
 include("domains/grid2d/cbs_grid2d.jl")
 include("domains/grid2d/ecbs_grid2d.jl")

@@ -117,10 +117,10 @@ function search!(solver::CBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S})
         conflict = get_first_conflict(solver.env, P.solution)
 
         # If no conflict, we are done
-        if conflict == nothing
+        if conflict === nothing
             @info "SOLVED! Cost: ",P.cost
             # IMP - One or more solutions might be empty - need to check at higher level
-            return P.solution
+            return P.solution, P.constraints
         end
 
         # Create additional nodes to resolve conflict (which is not nothing)
@@ -160,6 +160,6 @@ function search!(solver::CBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S})
     end
 
     # Return an empty solution
-    return Vector{PlanResult{S,A,C}}(undef, 0)
+    return Vector{PlanResult{S,A,C}}(undef, 0), Vector{CNR}(undef, 0)
 
 end

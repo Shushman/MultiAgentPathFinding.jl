@@ -67,6 +67,7 @@ end
 ## Compute sum of individual paths but if two states have an edge 
 ## then compute the pairwise costs of their next actions
 struct SumOfCoordinatedCosts <: HighLevelCost
+    env::MAPFEnvironment
     get_coord_graph_from_state::Function   # Maps set of states to CG over agents
     get_coord_utility::Function             # Maps pair of states and actions to utility
 end
@@ -93,7 +94,7 @@ function compute_cost(socc::SumOfCoordinatedCosts, solution::Vector{PR},
         end
     
         # Get the current CG
-        current_cg = socc.get_coord_graph_from_state(curr_state)
+        current_cg = socc.get_coord_graph_from_state(socc.env, curr_state)
 
         action_counted_agents = Set{Int64}()
         for edge in edges(current_cg)
@@ -106,7 +107,7 @@ function compute_cost(socc::SumOfCoordinatedCosts, solution::Vector{PR},
                 push!(action_counted_agents, edge.dst)
 
                 # Add up utility cost as a function of pair of states and actions
-                total_cost += socc.get_coord_utility(curr_state[edge.src], curr_state[edge.dst],
+                total_cost += socc.get_coord_utility(socc.env, curr_state[edge.src], curr_state[edge.dst],
                                                      solution[edge.src].actions[t], solution[edge.dst].actions[t])
             end # t < min(vertex action sets)
         end # edge in edges(curr_cg)
