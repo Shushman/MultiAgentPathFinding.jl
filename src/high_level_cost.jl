@@ -79,7 +79,7 @@ function compute_cost(socc::SumOfCoordinatedCosts, solution::Vector{PR},
                       start_time::Int64=1) where {PR <: PlanResult}
 
     # TODO : Verify this sort is okay
-    finish_times = sort((length(pr), i) for (i, pr) in enumerate(solution))
+    finish_times = sort((length(pr.states), i) for (i, pr) in enumerate(solution))
     second_last_finish = finish_times[end-1][1]
     state_type = typeof(solution[1].states[1][1])   # A bit hacky
     nagents = length(solution)
