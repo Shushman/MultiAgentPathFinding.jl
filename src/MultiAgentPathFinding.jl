@@ -86,10 +86,12 @@ export
     ECBSSolver
 
 
-# CBS-CG elements
+# CBS-CG specific elements
 export
     get_coord_graph_from_state,
-    get_coord_utility
+    get_coord_utility,
+    CBSCGHighLevelNode,
+    CBSCGSolver
 
 # Grid 2D Types
 export

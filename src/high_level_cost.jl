@@ -69,7 +69,7 @@ end
 struct SumOfCoordinatedCosts <: HighLevelCost
     env::MAPFEnvironment
     get_coord_graph_from_state::Function   # Maps set of states to CG over agents
-    get_coord_utility::Function             # Maps pair of states and actions to utility
+    get_coord_cost::Function             # Maps pair of states and actions to utility (can be negative)
 end
 
 # Non-trivial: iterate through time-steps of the solution
@@ -103,11 +103,17 @@ function compute_cost(socc::SumOfCoordinatedCosts, solution::Vector{PR},
             # which still have actions to do at time t
             if t <= min(length(solution[edge.src].actions), length(solution[edge.dst].actions))
 
-                push!(action_counted_agents, edge.src)
-                push!(action_counted_agents, edge.dst)
+                if ~(edge.src in action_counted_agents)
+                    push!(action_counted_agents, edge.src)
+                    total_cost += solution[edge.src].actions[t][2]
+                end
+                if ~(edge.dst in action_counted_agents)
+                    push!(action_counted_agents, edge.dst)
+                    total_cost += solution[edge.dst].actions[t][2]
+                end
 
-                # Add up utility cost as a function of pair of states and actions
-                total_cost += socc.get_coord_utility(socc.env, curr_state[edge.src], curr_state[edge.dst],
+                # NOTE: Utility is a SEPARATE addition or reduction or no-effect
+                total_cost += socc.get_coord_cost(socc.env, curr_state[edge.src], curr_state[edge.dst],
                                                      solution[edge.src].actions[t], solution[edge.dst].actions[t])
             end # t < min(vertex action sets)
         end # edge in edges(curr_cg)
@@ -116,7 +122,7 @@ function compute_cost(socc::SumOfCoordinatedCosts, solution::Vector{PR},
         # Count the cost of their actions
         for i = 1:nagents
             if ~(i in action_counted_agents) && t <= length(solution[i].actions)
-                total_cost += solution[i].actions[t]
+                total_cost += solution[i].actions[t][2]
             end
         end
     end
