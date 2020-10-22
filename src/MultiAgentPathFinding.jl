@@ -88,8 +88,12 @@ export
 
 # CBS-CG specific elements
 export
-    get_coord_graph_from_state,
-    get_coord_utility,
+    get_coord_graph_from_states,
+    get_coord_cost,
+    get_all_mapf_actions_between_states,
+    update_states_with_coord_action,
+    get_phase1_soln_constraints,
+    indiv_agent_cost,
     CBSCGHighLevelNode,
     CBSCGSolver
 
@@ -112,5 +116,7 @@ include("domains/grid2d/types.jl")
 include("domains/grid2d/cbs_grid2d.jl")
 include("domains/grid2d/ecbs_grid2d.jl")
 include("domains/grid2d/a_star_epsilon_grid2d.jl")
+include("domains/grid2d_cg/grid2d_cg_types.jl")
+include("domains/grid2d_cg/cbs_grid2d_cg.jl")
 
 end # module

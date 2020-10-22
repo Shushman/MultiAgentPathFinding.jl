@@ -105,11 +105,11 @@ function compute_cost(socc::SumOfCoordinatedCosts, solution::Vector{PR},
 
                 if ~(edge.src in action_counted_agents)
                     push!(action_counted_agents, edge.src)
-                    total_cost += solution[edge.src].actions[t][2]
+                    total_cost += indiv_agent_cost(socc.env, edge.src, curr_state[edge.src], solution[edge.src].actions[t][2])
                 end
                 if ~(edge.dst in action_counted_agents)
                     push!(action_counted_agents, edge.dst)
-                    total_cost += solution[edge.dst].actions[t][2]
+                    total_cost += indiv_agent_cost(socc.env, edge.dst, curr_state[edge.dst], solution[edge.dst].actions[t][2])
                 end
 
                 # NOTE: Utility is a SEPARATE addition or reduction or no-effect
