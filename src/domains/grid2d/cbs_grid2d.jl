@@ -224,7 +224,7 @@ function low_level_search!(solver::CBSSolver, agent_idx::Int64, s::Grid2DState, 
     plan_result = get_plan_result_from_astar(env, a_star_states.dists, a_star_states.parent_indices, idx, env.curr_goal_idx, 0)
 
     # Return empty solution
-    if plan_result == nothing
+    if plan_result === nothing
         return PlanResult{Grid2DState,Grid2DAction,Int64}()
     end
 
