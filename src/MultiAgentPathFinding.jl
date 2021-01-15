@@ -8,10 +8,6 @@ using DataStructures
 using Parameters
 using Graphs
 
-# Imports
-import Base: isequal, isless, isempty
-import DataStructures: compare
-
 
 
 # Abstract types
