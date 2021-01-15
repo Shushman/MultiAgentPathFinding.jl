@@ -152,9 +152,8 @@ function search!(solver::CBSSolver{S,A,C,HC,F,CNR,E}, initial_states::Vector{S})
                     new_node.cost = accumulate_cost(solver.hlcost, new_node.cost, new_solution.cost)
                     push!(solver.heap, new_node)
                     # @show new_node
+                    id += 1
                 end
-
-                id += 1
             end
         end
     end
