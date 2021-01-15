@@ -21,7 +21,7 @@ Base.isless(hln1::ECBSHighLevelNode, hln2::ECBSHighLevelNode) = hln1.cost < hln2
 struct CompareFocalHeuristic
 end
 
-compare(comp::CompareFocalHeuristic, n1::ECBSHighLevelNode, n2::ECBSHighLevelNode) = (n1.focal_heuristic_value, n1.cost) < (n2.focal_heuristic_value, n2.cost)
+DataStructures.compare(comp::CompareFocalHeuristic, n1::ECBSHighLevelNode, n2::ECBSHighLevelNode) = (n1.focal_heuristic_value, n1.cost) < (n2.focal_heuristic_value, n2.cost)
 
 @with_kw mutable struct ECBSSolver{S <: MAPFState, A <: MAPFAction, C <: Number, HC <: HighLevelCost, F <: MAPFConflict, CNR <: MAPFConstraints, E <: MAPFEnvironment}
     env::E
