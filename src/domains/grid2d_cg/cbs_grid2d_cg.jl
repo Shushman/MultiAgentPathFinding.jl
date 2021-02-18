@@ -20,7 +20,7 @@ set_low_level_context!(env::Grid2DCGEnvironment, agent_idx::Int64, constraints::
 
 # Heuristic and is_solution are for a_star
 
-function get_phase1_soln_constraints(env::Grid2DCGEnvironment, initial_states::Vector{Grid2DCGState})
+function phase1_soln_constraints(env::Grid2DCGEnvironment, initial_states::Vector{Grid2DCGState})
 
     @assert length(env.agent_ground) == length(initial_states)
 
@@ -48,7 +48,7 @@ function get_phase1_soln_constraints(env::Grid2DCGEnvironment, initial_states::V
 end
 
 # Now need to implement the four functions!
-function get_coord_graph_from_states(env::Grid2DCGEnvironment, curr_states::Vector{Grid2DCGState})
+function coord_graph_from_states(env::Grid2DCGEnvironment, curr_states::Vector{Grid2DCGState})
 
     num_agents = length(curr_states)
     cg_adj_mat = zeros(Int64, num_agents, num_agents)
@@ -96,7 +96,7 @@ function get_all_mapf_actions_between_states(env::Grid2DCGEnvironment, s1::Grid2
 end
 
 
-function indiv_agent_cost(env::Grid2DCGEnvironment, idx::Int64, s::Grid2DCGState, a::Grid2DCGAction)
+function agent_cost(env::Grid2DCGEnvironment, idx::Int64, s::Grid2DCGState, a::Grid2DCGAction)
 
     # TODO
     if env.agent_ground[idx] == true
@@ -113,7 +113,7 @@ function indiv_agent_cost(env::Grid2DCGEnvironment, idx::Int64, s::Grid2DCGState
 end
 
 
-function get_coord_cost(env::Grid2DCGEnvironment, idx1::Int64, idx2::Int64, s1::Grid2DCGState, s2::Grid2DCGState, a1::Grid2DCGAction, a2::Grid2DCGAction)
+function coord_cost(env::Grid2DCGEnvironment, idx1::Int64, idx2::Int64, s1::Grid2DCGState, s2::Grid2DCGState, a1::Grid2DCGAction, a2::Grid2DCGAction)
 
     # Should never have opposite coord modes
     if a1.coord_mode != a2.coord_mode

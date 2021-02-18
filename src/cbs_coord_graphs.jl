@@ -1,35 +1,41 @@
-"""
-    get_coord_graph_from_state(env::MAPFEnvironment, curr_states::Vector{MAPFState})
+abstract type MAPFCoordinationStrategy end
 
 """
-function get_coord_graph_from_states end
+    function coord_graph_from_states(env::MAPFEnvironment, curr_states::Vector{MAPFState}, coordination_constraints::Vector{Set{Int64}}, agents_to_exclude::Set{Int64})
+
+    Depending on the domain we should restrict the degree of nodes so that capacity constraints (if any) are not violated. Also don't make edges if coord constraints.
+"""
+function coord_graph_from_states end
 
 """
-    function get_coord_cost(env::MAPFEnvironment, s1::MAPFState, s2::MAPFState, a1::MAPFAction, a2::MAPFAction, constraints::Vector{MAPFConstraints})
+    function coord_cost(env::MAPFEnvironment, s1::MAPFState, s2::MAPFState, a1::MAPFAction, a2::MAPFAction, constraints::Vector{MAPFConstraints})
 
 Have to think very carefully about this to avoid over/undercounting
 """
-function get_coord_cost end
+function coord_cost end
 
 """
-    function get_all_mapf_actions_between_states(env::MAPFEnvironment, s1::MAPFState, s2::MAPFEnvironment)
+    function all_coord_strategies(env::MAPFEnvironment, curr_states::Vector{MAPFState}, curr_cg::SimpleGraph, idx::Int64)
 
-Return all possible actions that can take agent from s1 to s2 (including coordination). If s1 == s2, return empty vector
+All possible coordination strategies at the current state.
 """
-function get_all_mapf_actions_between_states end
+function all_coord_strategies end
 
-function update_states_with_coord_action end
+function compute_updated_path_with_coordination end
 
-function get_phase1_soln_constraints end
+function phase1_soln_constraints end
 
-function indiv_agent_cost end
+function agent_cost end
 
-
+"""
+    agent_evaluation_timesteps: The timestep up to which each agent has been evaluated for coordination
+"""
 @with_kw mutable struct CBSCGHighLevelNode{C <: Number}
     solution::Vector{PlanResult}
     cost::C
+    agent_evaluation_timesteps::Vector{Int64}
+    coordination_constraints::Vector{Set{Int64}}
     id::Int64 = 0
-    evaled_time::Int64 = 1
 end
 
 Base.isless(hln1::CBSCGHighLevelNode, hln2::CBSCGHighLevelNode) = hln1.cost < hln2.cost
@@ -47,66 +53,119 @@ Base.isless(hln1::CBSCGHighLevelNode, hln2::CBSCGHighLevelNode) = hln1.cost < hl
     message_rounds::Int64
 end
 
-# TODO: Crucial function. Outline
-# Step 1: Compute Dynamic CG at time t given current state
-# Step 2: If CG, Do message passing as a function of alternative actions to get to next 
-# already-planned state
-# Step 3: If improvement from existing set of actions, propose change and compute new solution and cost and return
+struct CoordinatedPathData{C <: Number}
+    solution::PlanResult
+    coordination_time::Int64
+end
+
+"""
+    If coordination possible, consider it if beneficial, return the updated paths, cost, evaluation timesteps, and coordination constraints.
+"""
 function adhoc_coord_along_path_at_time(solver::CBSCGSolver,
-                                        solution::Vector{PR}, cost::C,
-                                        curr_time::Int64) where {C <: Number, PR <: PlanResult}
+                                        P::CBSCGHighLevelNode{C},
+                                        phase1_constraints::Vector{CNR},
+                                        eval_time::Int64) where {C <: Number, CNR <: MAPFConstraints}
     
-    # Extract current state
-    num_agents = length(solution)
-    state_type = typeof(solution[1].states[1][1]) 
-    curr_states = Vector{state_type}(undef, num_agents)
+    # Extract current states of agents
+    num_agents = length(P.solution)
+    curr_states = [P.solution[i].states[min(eval_time, end)][1] for i = 1:num_agents]
+
+    # Exclude from CG consideration (set deg to 0) any agents that are ahead of eval time or done
+    agents_to_exclude = Set{Int64}()
     for i = 1:num_agents
-        curr_states[i] = solution[i].states[min(curr_time, end)][1]
+        if eval_time < P.agent_evaluation_timesteps[i] || eval_time >= length(P.solution[i].states)
+            push!(agents_to_exclude, i)
+        end
     end
 
-    # Get current CG for state
-    curr_cg = get_coord_graph_from_state(solver.env, curr_states)
+    # Get current CG for state; we will filter out for eval time here
+    curr_cg = coord_graph_from_states(solver.env, curr_states, P.coordination_constraints, agents_to_exclude)  
+    
+    # Nothing to coordinate
+    if ne(curr_cg) == 0
+        return false, P
+    end
 
-    # Add up action costs for zero-degree and nz-deg CG nodes
-    nonzero_deg_nodes = Set{Int64}()
-    zero_deg_action_costs = zero(C)
-    cg_vert_action_costs = zero(C)
+    # For agents that can possibly coordinate, compute the cost of the rest of their current paths
+    cg_agent_rest_path_costs = Dict{Int64,C}()
+    total_cg_agent_rest_path_costs = zero(C)
     for v in vertices(curr_cg)
-        if curr_time <= length(solution[v].actions)
-            if degree(curr_cg, v) == 0           
-                zero_deg_action_costs += indiv_agent_cost(solver.env, v, curr_states[v], solution[v].actions[curr_time][1])
-            else
-                push!(nonzero_deg_nodes, v)
-                cg_vert_action_costs += indiv_agent_cost(solver.env, v, curr_states[v], solution[v].actions[curr_time][1])
-            end
+        if degree(curr_cg, v) > 0
+            agent_rest_path_cost = P.solution[v].states[end][2] - P.solution[v].states[eval_time][2]
+            cg_agent_rest_path_costs[v] = agent_rest_path_cost
+            total_cg_agent_rest_path_costs += agent_rest_path_cost
         end
     end # v in vertices
-
-    if empty(nonzero_deg_nodes)
-        return false, solution, cost
-    end
 
     ## MESSAGE PASSING
 
     # Need to set up matrix for messages
-    agent_actions = [get_all_mapf_actions_between_states(env,
-                     solution[n].states[min(end, curr_time)],
-                     solution[n].states[min(end, curr_time+1)]) for n = 1:num_agents]
-    n_max_actions = maximum(length(aa) for aa in agent_actions)
+    agent_coords = [all_coord_strategies(solver.env, curr_states, curr_cg, n) for n = 1:num_agents]
+    n_max_coords = maximum(length(aa) for aa in agent_coords)
+
+    # Again, if no coord to be done, move on
+    if n_max_coords == 0
+        return false, P.solution, P.cost
+    end
+
     n_edges = ne(tree.coordination_stats.adjmatgraph)
+    fwd_messages = zeros(C, n_edges, n_max_coords+1)
+    bwd_messages = zeros(C, n_edges, n_max_coords+1)
 
-    fwd_messages = zeros(C, n_edges, n_max_actions)
-    bwd_messages = zeros(C, n_edges, n_max_actions)
-
-    # We'll only care about the agents in CG
-    agent_costs = zeros(C, num_agents, n_max_actions)
-    for (i, s) in enumerate(curr_states) 
-        for (j, ai) in enumerate(agent_actions[i])
-            agent_costs[i, j] = indiv_agent_cost(solver.env, i, s, ai)
+    # TODO: For each edge, compute the benefit of each coord strategy to indiv agent and to pair
+    # Also need to track the actual recomputed solns
+    # This is the key low-level routine that domain must implement efficiently
+    # NOTE: We use n_max_coords + 1 to account for the null coord strategy in maxplus
+    per_agent_coord_costs = zeros(C, num_agents, n_max_coords+1)
+    coord_payoff_cost = zeros(C, num_agents, num_agents, n_max_coords+1, n_max_coords+1)
+    
+    agent_coord_paths = Dict{Int64,Dict}()
+    
+    # First enter per_agent_coord costs for those that are in cg
+    for (agent, pathcost) in cg_agent_rest_path_costs
+        per_agent_coord_costs[agent][1] = pathcost
+        agent_coord_paths[agent] = Dict{Int64,CoordinatedPathData}()
+        for (idx, coord) in enumerate(all_coord_strategies[agent])
+            updated_soln = compute_updated_path_with_coordination(solver.env, curr_states,
+                                                        agent, coord, phase1_constraints, P.solution, eval_time)
+            agent_coord_paths[idx+1] = updated_soln
+            per_agent_coord_costs[agent][idx+1] = updated_soln.solution.cost
         end
     end
 
-    # We're trying to minimize with message passing as all costs are positive
+    # Now enter coordination payoffs for coord strategies
+    for (e_idx, e) in enumerate(edges(curr_cg))
+
+        i = e.src
+        j = e.dst
+        
+        # If both agents have options to coordinate
+        if length(all_coord_strategies[i])*length(all_coord_strategies[j]) > 0
+
+            for (ci_idx, ci) in enumerate(all_coord_strategies[i])
+                for (cj_idx, cj) in enumerate(all_coord_strategies[j])
+                    
+                    if compatible_strategies(solver.env, curr_states, i, j, ci, cj) == true
+
+                        @assert agent_coord_paths[i][ci_idx+1].coordination_time == agent_coord_paths[j][cj_idx+1].coordination_time
+
+                        path_i = agent_coord_paths[i][ci_idx+1].solution
+                        path_j = agent_coord_paths[j][cj_idx+1].solution
+
+                        ij_coord_payoff = compute_coordination_payoff_paths(solver.env, ci, cj, path_i, path_j,
+                                                                eval_time, agent_coord_paths[i][ci_idx+1].coordination_time)
+
+                        coord_payoff_cost[i, j, ci_idx+1, cj_idx+1] = ij_coord_payoff
+                        coord_payoff_cost[j, i, cj_idx+1, ci_idx+1] = ij_coord_payoff
+
+                    end
+                end
+            end
+        end
+    end
+
+
+    # We're trying to minimize with message passing
     for r = 1:solver.message_rounds
 
         # Copy over old messages
@@ -120,26 +179,28 @@ function adhoc_coord_along_path_at_time(solver::CBSCGSolver,
             j = e.dst
 
             # Forward messages
-            for (aj_idx, aj) in enumerate(agent_actions[j])
+            for aj_idx = 1:length(agent_coords[j])+1
 
-                fwd_message_vals = zeros(C, length(agent_actions[i]))
+                fwd_message_vals = zeros(C, length(agent_coords[i])+1)
 
-                for (ai_idx, ai) in enumerate(agent_actions[i])
-                    fwd_message_vals[ai_idx] = agent_costs[i, ai_idx] - bwd_messages_old[e_idx,ai_idx] + get_coord_cost(solver.env, i, j, curr_states[i], curr_states[j], ai, aj)
-                end # iter over agent_actions[i]
+                for ai_idx = 1:length(agent_coords[i])+1
+                    fwd_message_vals[ai_idx] = per_agent_coord_costs[i, ai_idx] - bwd_messages_old[e_idx, ai_idx] + coord_payoff_cost[i, j, ai_idx, aj_idx]
+                end
+
                 fwd_messages[e_idx, aj_idx] = minimum(fwd_message_vals)
-            end # iter over agent_actions[j]
+            end
 
             # Backward messages
-            for (ai_idx, ai) in enumerate(agent_actions[i])
+            for ai_idx = 1:length(agent_coords[i])+1
 
-                bwd_message_vals = zeros(C, length(agent_actions[j]))
+                bwd_message_vals = zeros(C, length(agent_coords[j])+1)
 
-                for (aj_idx, aj) in enumerate(agent_actions[j])
-                    bwd_message_vals[aj_idx] = agent_costs[j, aj_idx] - fwd_messages_old[e_idx,aj_idx] + get_coord_cost(solver.env, i, j, curr_states[i], curr_states[j], ai, aj)
-                end # iter over agent_actions[j]
+                for aj_idx = 1:length(agent_coords[j])+1
+                    bwd_message_vals[aj_idx] = per_agent_coord_costs[j, aj_idx] - fwd_messages_old[e_idx,aj_idx] + coord_payoff_cost[i, j, ai_idx, aj_idx]
+                end
+
                 bwd_messages[e_idx, ai_idx] = minimum(bwd_message_vals)
-            end # iter over agent_actions[i]
+            end
         end
     
         # TODO : Consider message normalization later?
@@ -148,20 +209,20 @@ function adhoc_coord_along_path_at_time(solver::CBSCGSolver,
         bnormdiff = norm(bwd_messages - bwd_messages_old)
 
         # Update agent_costs for nonzero deg nodes
-        for n in nonzero_deg_nodes
+        # for n in keys(cg_agent_rest_path_costs)
 
-            nbrs = neighbors(curr_cg, n)
-            edgelist = collect(edges(adjgraphmat))
+        #     nbrs = neighbors(curr_cg, n)
+        #     edgelist = collect(edges(adjgraphmat))
 
-            for nbr in nbrs
-                if Edge(n, nbr) in edgelist
-                    agent_costs[n, :] += bwd_messages[findfirst(isequal(Edge(n, nbr)), edgelist), :]
-                elseif Edge(nbr, n) in edgelist
-                    agent_costs[n, :] += fwd_messages[findfirst(isequal(Edge(nbr, n)), edgelist), :]
-                end
-            end
+        #     for nbr in nbrs
+        #         if Edge(n, nbr) in edgelist
+        #             agent_costs[n, :] += bwd_messages[findfirst(isequal(Edge(n, nbr)), edgelist), :]
+        #         elseif Edge(nbr, n) in edgelist
+        #             agent_costs[n, :] += fwd_messages[findfirst(isequal(Edge(nbr, n)), edgelist), :]
+        #         end
+        #     end
 
-        end # go over nonzero degree nodes
+        # end # go over nonzero degree nodes
 
         # If converged, break
         if isapprox(fnormdiff, zero(C)) && isapprox(bnormdiff, zero(C))
@@ -170,20 +231,33 @@ function adhoc_coord_along_path_at_time(solver::CBSCGSolver,
     end # r = 1:rounds
 
     # Go over nonzero deg nodes and update
-    new_soln = deepcopy(solution)
-    cg_vert_coord_costs = zero(C) # MUST be either zero (don't coord) or negative at the end
-    for n in nonzero_deg_nodes
-        cc, idx = findmin(agent_costs[n, 1:length(agent_actions[n])])   # Only choose up to agent ID
-        cg_vert_coord_costs += cc
-        # Update action, cost, and next state of agent
-        # TODO: Will have to replan from here
-        new_soln[n].actions[curr_time] = (agent_actions[n, idx], solution[n].actions[curr_time][2])
-        new_soln[n].states[curr_time+1] = update_states_with_coord_action(solution[n].states,
-                                                                          agent_actions[n, idx],
-                                                                          curr_time)
+    new_node = CBSCGHighLevelNode(solution=P.solution, cost=P.cost,
+                    agent_evaluation_timesteps=P.agent_evaluation_timesteps,
+                    coordination_constraints=P.coordination_constraints)
+    
+    # TODO: Update solution, cost, eval timesteps and coord constraints
+
+    for (n, pathcost) in cg_agent_rest_path_costs
+
+
+        nbrs = neighbors(curr_cg, n)
+        edgelist = collect(edges(curr_cg))
+
+        for nbr in nbrs
+            if Edge(n, nbr) in edgelist
+                per_agent_coord_costs[n, :] += bwd_messages[findfirst(isequal(Edge(n, nbr)), edgelist), :]
+            elseif Edge(nbr, n) in edgelist
+                per_agent_coord_costs[n, :] += fwd_messages[findfirst(isequal(Edge(nbr, n)), edgelist), :]
+            end
+        end
+
+
+        cc, idx = findmin(per_agent_costs[n, 1:length(agent_coords[n])+1])   # Only choose up to agent ID
+        
+        
     end
 
-    # If overall coordination chosen, modify soln
+    # If overall coordination chosen, modify solution
     if cg_vert_coord_costs < cg_vert_action_costs
         new_cost = cost + cg_vert_coord_costs
         return true, new_soln, new_cost
@@ -199,17 +273,19 @@ function search!(solver::CBSCGSolver, initial_states::Vector{S}) where {S <: MAP
     num_agents = length(initial_states)
 
     # Bind environment to SOCC functions
-    socc = SumOfCoordinatedCosts(solver.env, get_coord_graph_from_state, get_coord_cost)
+    socc = SumOfCoordinatedCosts(solver.env, get_coord_graph_from_state, coord_cost)
 
     # Get normal CBS solution and compute its sum of coordinated costs
-    phase1_soln, phase1_constr = get_phase1_soln_constraints(solver.env, initial_states)
+    phase1_soln, phase1_constr = phase1_soln_constraints(solver.env, initial_states)
     phase1_soln_socc = compute_cost(socc, phase1_soln)
 
     # TODO: Eventually put a flag in compute_cost that checks if there is any
     # coordination to be done and if not then just return
 
     # Initialize phase 2 heap with solution node of phase 1 and eval time = 1
-    start = CBSCGHighLevelNode(solution=phase1_soln, cost=phase1_soln_socc)
+    start = CBSCGHighLevelNode(solution=phase1_soln, cost=phase1_soln_socc,
+                               agent_evaluation_timesteps = ones(Int64, num_agents),
+                               coordination_constraints = [Set{Int64}() for _ = 1:num_agents])
 
     push!(solver.heap, start)
 
@@ -219,30 +295,43 @@ function search!(solver::CBSCGSolver, initial_states::Vector{S}) where {S <: MAP
 
         # Get best node as per Sum of Coordinated Costs
         P = pop!(solver.heap)
-        evaled_time = P.evaled_time
 
-        # Return solution if it has been evaluated throughout
-        last_action_times = sort(length(pr.actions) for pr in P.solution)
-        if evaled_time > last_action_times[end-1]
+        eval_done = true
+        for (pr, evt) in zip(P.agent_evaluation_timesteps, P.solution)
+            if evt < length(pr.states)
+                eval_done = false
+                break
+            end
+        end
+
+        if eval_done
             return P.solution
-        end # returning
+        end
+
+        eval_time = minimum(P.agent_evaluation_timesteps)
 
 
         # Determine if system state at time t has any CG improvement by message passing
         # If so, put in heap and break
         # NOTE: Ensure adhoc coord does not introduce new conflicts; use phase1_constr to guide
-        change, new_soln, new_cost = adhoc_coord_along_path_at_time(solver.env, P.solution,
-                                                                    P.cost, evaled_time)
+        change, new_node_info = adhoc_coord_along_path_at_time(solver.env, P, phase1_constr, eval_time)
         
-        # TODO: Replan from changed states eventually
         if change
-            new_node = CBSCGHighLevelNode(solution=new_soln, cost=new_cost, id=curr_id, evaled_time=evaled_time+1)
+            new_node = CBSCGHighLevelNode(solution=new_node_info.solution,
+                            cost=new_node_info.cost,
+                            agent_evaluation_timesteps=new_node_info.agent_evaluation_timesteps,
+                            coordination_constraints = new_node_info.coordination_constraints,
+                            id=curr_id)
             curr_id += 1
             push!(solver.heap, new_node)
+
+            # TODO: Only if there is a change or either way?
+            P.coordination_constraints = new_node_info.coordination_constraints
         end # change due to local coordination
 
         # Either way re-enter same node with time increased
-        P.evaled_time += 1
+        P.agent_evaluation_timesteps = P.agent_evaluation_timesteps .+ 1
+
         P.id = curr_id
         curr_id += 1
         push!(solver.heap, P)

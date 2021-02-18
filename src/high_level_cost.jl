@@ -68,8 +68,8 @@ end
 ## then compute the pairwise costs of their next actions
 struct SumOfCoordinatedCosts <: HighLevelCost
     env::MAPFEnvironment
-    get_coord_graph_from_state::Function   # Maps set of states to CG over agents
-    get_coord_cost::Function             # Maps pair of states and actions to utility (can be negative)
+    coord_graph_from_states::Function   # Maps set of states to CG over agents
+    coord_cost::Function             # Maps pair of states and actions to utility (can be negative)
 end
 
 # Non-trivial: iterate through time-steps of the solution
@@ -94,7 +94,7 @@ function compute_cost(socc::SumOfCoordinatedCosts, solution::Vector{PR},
         end
     
         # Get the current CG
-        current_cg = socc.get_coord_graph_from_state(socc.env, curr_state)
+        current_cg = socc.coord_graph_from_states(socc.env, curr_state)
 
         action_counted_agents = Set{Int64}()
         for edge in edges(current_cg)
@@ -105,16 +105,17 @@ function compute_cost(socc::SumOfCoordinatedCosts, solution::Vector{PR},
 
                 if ~(edge.src in action_counted_agents)
                     push!(action_counted_agents, edge.src)
-                    total_cost += indiv_agent_cost(socc.env, edge.src, curr_state[edge.src], solution[edge.src].actions[t][2])
+                    total_cost += agent_cost(socc.env, edge.src, 
+                                  curr_state[edge.src], solution[edge.src].actions[t][2])
                 end
                 if ~(edge.dst in action_counted_agents)
                     push!(action_counted_agents, edge.dst)
-                    total_cost += indiv_agent_cost(socc.env, edge.dst, curr_state[edge.dst], solution[edge.dst].actions[t][2])
+                    total_cost += agent_cost(socc.env, edge.dst, curr_state[edge.dst], solution[edge.dst].actions[t][2])
                 end
 
                 # NOTE: Utility is a SEPARATE addition or reduction or no-effect
-                total_cost += socc.get_coord_cost(socc.env, curr_state[edge.src], curr_state[edge.dst],
-                                                     solution[edge.src].actions[t], solution[edge.dst].actions[t])
+                total_cost += socc.coord_cost(socc.env, curr_state[edge.src], curr_state[edge.dst],
+                                              solution[edge.src].actions[t], solution[edge.dst].actions[t])
             end # t < min(vertex action sets)
         end # edge in edges(curr_cg)
 
